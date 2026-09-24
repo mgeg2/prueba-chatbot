@@ -11,8 +11,8 @@
 // y en el intent "Buscar-receta-por-ingrediente" activa "Enable webhook call for this intent".
 
 const express = require("express");
-const { translateIngredient } = require("./ingredientMap");
-const { translateText, translateMany } = require("./translate");
+const { translateIngredient } = require("./ingredientMap.js");
+const { translateText, translateMany } = require("./translate.js");
 
 const app = express();
 app.use(express.json());
