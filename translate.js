@@ -1,8 +1,8 @@
 // translate.js
-// Traducción ligera usando MyMemory Translation API (Gratuita, sin API Key, resistente a bloqueos)
+// Traducción ligera usando MyMemory Translation API (Gratuita, sin API Key, resistente a rate limits)
 
 /**
- * Traduce un texto usando la API de MyMemory
+ * Traduce un texto de inglés a español (u otro idioma origen/destino)
  */
 async function translateText(text, targetLang = "es", sourceLang = "en") {
   if (!text || typeof text !== "string" || text.trim() === "") return text;
@@ -23,7 +23,7 @@ async function translateText(text, targetLang = "es", sourceLang = "en") {
 
     if (data && data.responseData && data.responseData.translatedText) {
       let translated = data.responseData.translatedText;
-      // Restauramos los saltos de línea
+      // Restauramos los saltos de línea originales
       translated = translated.replace(/\[BREAK\]/g, "\n").replace(/\[BREAK\]/g, "\n");
       return translated;
     }
