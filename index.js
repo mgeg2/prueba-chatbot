@@ -220,6 +220,70 @@ async function handleRecetaAleatoria() {
   }
   return await buildRecipeDetailResponse(meal);
 }
+async function handleListaDeLaCompra(parameters) {
+  const nombreReceta = parameters.receta;
+
+  if (!nombreReceta) {
+    const promptText = "¿De qué receta quieres que te haga la lista de la compra?";
+    return {
+      fulfillmentText: promptText,
+      fulfillmentMessages: [{ text: { text: [promptText] } }],
+    };
+  }
+
+  // 1. Traducimos el nombre del plato al inglés para buscar en TheMealDB
+  const nombreEn = await translateText(nombreReceta, "en", "es");
+
+  // 2. Buscamos el plato por nombre en TheMealDB
+  const url = `${MEALDB_BASE}/search.php?s=${encodeURIComponent(nombreEn)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const meal = data.meals && data.meals[0];
+
+  if (!meal) {
+    const errorText = `No he encontrado la receta de "${nombreReceta}" para generar la lista de la compra.`;
+    return {
+      fulfillmentText: errorText,
+      fulfillmentMessages: [{ text: { text: [errorText] } }],
+    };
+  }
+
+  // 3. Extraemos y traducimos los ingredientes
+  const ingredientsEn = getMealIngredients(meal);
+  const ingredientesEs = await translateMany(ingredientsEn);
+
+  const listaText = ingredientesEs.map((ing) => `🛒 ${ing}`).join("\n");
+  const tituloEs = await translateText(meal.strMeal, "es", "en");
+
+  const fullMessage = `📝 *Lista de la compra para ${tituloEs}:*\n\n${listaText}`;
+
+  // 4. Formato de respuesta con richContent (tipo description / info)
+  const payload = {
+    richContent: [
+      [
+        {
+          type: "info",
+          title: `Lista de la compra: ${tituloEs}`,
+          subtitle: `${ingredientesEs.length} ingredientes necesarios`,
+          image: { src: { rawUrl: meal.strMealThumb } },
+        },
+        {
+          type: "description",
+          title: "Ingredientes para comprar",
+          text: ingredientesEs.map((ing) => `🛒 ${ing}`),
+        },
+      ],
+    ],
+  };
+
+  return {
+    fulfillmentText: fullMessage,
+    fulfillmentMessages: [
+      { text: { text: [fullMessage] } },
+      { payload },
+    ],
+  };
+}
 
 // --- Endpoint principal ---------------------------------------------------
 
@@ -240,6 +304,9 @@ app.post("/webhook", async (req, res) => {
       case "Receta-aleatoria":
         response = await handleRecetaAleatoria();
         break;
+      case "Lista-de-la-compra": // <-- Añadir este case
+        response = await handleListaDeLaCompra(parameters);
+       break;
       default:
         response = {
           fulfillmentText: "No tengo lógica configurada para este intent todavía.",
